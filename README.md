@@ -10,13 +10,13 @@ public fields and public property
 Ex
 ------------------
 
-+ c# code
-    
+c# code
+
     using UnityEngine;
     using System;
     
     using K.Debug;
-
+    
     // main
     {
         TestClass putturnA = new TestClass();
@@ -32,26 +32,26 @@ Ex
         putturnA.pubpubListG = new List<int>();
         putturnA.pubpubListG.Add(21);
         putturnA.pubpubListG.Add(33);
-
+        
         Debug.Log(Dumper.Dump(putturnA));
     }
-
+    
     public class TestClass
     {
         public string pubpubStrA;
-    
+     
         public string pubpriStrB
         {
             get; private set;
         }
-    
+     
         public void SetPubpriStrB(string val)
         {
             pubpriStrB = val;
         }
-    
+     
         public int pubpubIntC;
-    
+     
         private int pripriIntD;
     
         public void SetPripriIntD(int val)
@@ -81,7 +81,9 @@ Ex
         }
     }
 
-+ log
+
+log
+
 
     TestClass (
         (String) pubpubStrA = "pubpubStrA-1";
