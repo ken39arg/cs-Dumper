@@ -20,6 +20,7 @@ public class DumperTestCase : TestCase
         putturnA.SetPripriIntD(4562);
         putturnA.pubpubObjE = new TestClass();
         putturnA.pubpubObjE.pubpubStrA = "pubpubStrA-2";
+        putturnA.pubpubObjE.pubpubObjE = putturnA;
         putturnA.pubpubDictF = new Dictionary<int, string>();
         putturnA.pubpubDictF.Add(19, "nineteen");
         putturnA.pubpubDictF.Add(17, "seventeen");

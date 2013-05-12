@@ -42,13 +42,18 @@ namespace K.Debug
         public static bool Verbose = true;
 
         /// <summary>
+        /// Can display up to a maximum depth nested objects (default: 5)
+        /// </summary>
+        public static int MaxDepth = 5;
+
+        /// <summary>
         /// Dump object
         /// </summary>
         /// <param name="d">object data</param>
         /// <returns>string of dumped object</returns>
         public static string Dump(object d)
         {
-            return Dump(d, Indent, Verbose);
+            return Dump(d, Indent, Verbose, MaxDepth);
         }
 
         /// <summary>
@@ -59,7 +64,7 @@ namespace K.Debug
         /// <returns>string of dumped object</returns>
         public static string Dump(object d, int indent)
         {
-            return Dump(d, indent, Verbose);
+            return Dump(d, indent, Verbose, MaxDepth);
         }
 
         /// <summary>
@@ -70,7 +75,7 @@ namespace K.Debug
         /// <returns>string of dumped object</returns>
         public static string Dump(object d, bool verbose)
         {
-            return Dump(d, Indent, verbose);
+            return Dump(d, Indent, verbose, MaxDepth);
         }
 
         /// <summary>
@@ -80,12 +85,12 @@ namespace K.Debug
         /// <param name="indent">size of indentation</param>
         /// <param name="verbose">Flags for adding type information</param>
         /// <returns>string of dumped object</returns>
-        public static string Dump(object d, int indent, bool verbose)
+        public static string Dump(object d, int indent, bool verbose, int maxDepth)
         {
-            return _Dump(d, 0, indent, verbose);
+            return _Dump(d, 0, indent, verbose, maxDepth);
         }
 
-        private static string _Dump(object d, int level, int indent, bool verbose)
+        private static string _Dump(object d, int level, int indent, bool verbose, int maxDepth)
         {
             if (d == null) {
                 return "Null";
@@ -114,13 +119,17 @@ namespace K.Debug
                     Type vType = argTypes[1];
                     dumpText += dType.Name + "<" + kType.Name + "," + vType.Name + "> ";
                 }
+                if (maxDepth < level)
+                {
+                    return dumpText + " ... ";
+                }
                 dumpText += "{" + CRLF;
                 IDictionary dict = d as IDictionary;
                 foreach (object key in dict.Keys)
                 {
                     dumpText += BuildIndent(level + 1, indent);
                     dumpText += key.ToString() + " : ";
-                    dumpText += _Dump(dict[key], level + 1, indent, verbose) + ",";
+                    dumpText += _Dump(dict[key], level + 1, indent, verbose, maxDepth) + ",";
                     dumpText += CRLF;
                 }
                 dumpText += BuildIndent(level, indent) + "}";
@@ -134,12 +143,16 @@ namespace K.Debug
                     Type vType = argTypes[0];
                     dumpText = dType.Name + "<" + vType.Name + "> ";
                 }
+                if (maxDepth < level)
+                {
+                    return dumpText + " ... ";
+                }
                 dumpText += "[" + CRLF;
                 IList list = d as IList;
                 foreach (object item in list)
                 {
                     dumpText += BuildIndent(level + 1, indent);
-                    dumpText += _Dump(item, level + 1, indent, verbose) + ",";
+                    dumpText += _Dump(item, level + 1, indent, verbose, maxDepth) + ",";
                     dumpText += CRLF;
                 }
                 dumpText += BuildIndent(level, indent) + "]";
@@ -147,6 +160,10 @@ namespace K.Debug
             }
             else
             {
+                if (maxDepth < level)
+                {
+                    return dType.Name + " ... ";
+                }
                 string dumpText = dType.Name + " (";
                 dumpText += CRLF;
                 foreach (FieldInfo dFieldInfo in dType.GetFields()) 
@@ -158,7 +175,7 @@ namespace K.Debug
                         dumpText += "(" +fType.Name+") ";
                     }
                     dumpText += dFieldInfo.Name + " = ";
-                    dumpText += _Dump(val, level + 1, indent, verbose) + ";";
+                    dumpText += _Dump(val, level + 1, indent, verbose, maxDepth) + ";";
                     dumpText += CRLF;
                 }
                 foreach (PropertyInfo dPropertyInfo in dType.GetProperties()) 
@@ -170,7 +187,7 @@ namespace K.Debug
                         dumpText += "(" +fType.Name+") ";
                     }
                     dumpText += dPropertyInfo.Name + " = ";
-                    dumpText += _Dump(val, level + 1, indent, verbose) + ";";
+                    dumpText += _Dump(val, level + 1, indent, verbose, maxDepth) + ";";
                     dumpText += CRLF;
                 }
                 dumpText += BuildIndent(level, indent) + ")";
