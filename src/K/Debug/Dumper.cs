@@ -139,9 +139,15 @@ namespace K.Debug
             {
                 string dumpText = "";
                 if (verbose) {
-                    Type[] argTypes = dType.GetGenericArguments();
-                    Type vType = argTypes[0];
-                    dumpText = dType.Name + "<" + vType.Name + "> ";
+                    if (0 < argTypes.Length) 
+                    {
+                        Type vType = argTypes[0];
+                        dumpText = dType.Name + "<" + vType.Name + "> ";
+                    } 
+                    else
+                    {
+                        dumpText = dType.Name + " ";
+                    }
                 }
                 if (maxDepth < level)
                 {
