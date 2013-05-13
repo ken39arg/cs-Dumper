@@ -139,6 +139,7 @@ namespace K.Debug
             {
                 string dumpText = "";
                 if (verbose) {
+                    Type[] argTypes = dType.GetGenericArguments();
                     if (0 < argTypes.Length) 
                     {
                         Type vType = argTypes[0];
