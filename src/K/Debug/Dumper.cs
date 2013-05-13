@@ -28,9 +28,6 @@ namespace K.Debug
     /// </example>
     public class Dumper
     {
-        const string SPACE = " ";
-        const string CRLF  = "\r\n";
-
         /// <summary>
         /// size of indentation. (default: 4)
         /// </summary>
@@ -87,131 +84,180 @@ namespace K.Debug
         /// <returns>string of dumped object</returns>
         public static string Dump(object d, int indent, bool verbose, int maxDepth)
         {
-            return _Dump(d, 0, indent, verbose, maxDepth);
+            DumpObject dmp = new DumpObject(d, indent, verbose, maxDepth);
+            return dmp.Dump();
+        }
+    }
+
+    class DumpObject
+    {
+        const string SPACE = " ";
+        const string CRLF  = "\r\n";
+        static Type  StringType = typeof(string);
+        static Type  BoolType   = typeof(bool);
+
+        int indent   = 4;
+        bool verbose = true;
+        int maxDepth = 5;
+
+        object data;
+
+        public DumpObject(object d)
+        {
+            this.data = d;
+            this.indent   = Dumper.Indent;
+            this.verbose  = Dumper.Verbose;
+            this.maxDepth = Dumper.MaxDepth;
         }
 
-        private static string _Dump(object d, int level, int indent, bool verbose, int maxDepth)
+        public DumpObject(object d, int indent, bool verbose, int maxDepth)
+        {
+            this.data     = d;
+            this.indent   = indent;
+            this.verbose  = verbose;
+            this.maxDepth = maxDepth;
+        }
+
+        public string Dump()
+        {
+            return _Dump(data, 0, true);
+        }
+
+        private string _Dump(object d, int level, bool displayType)
         {
             if (d == null) {
                 return "Null";
             }
 
+            string dumpText = "";
             Type dType = d.GetType();
+
+            Type[] argTypes = dType.GetGenericArguments();
+
+            if (displayType && verbose)
+            {
+                dumpText += dType.Name;
+                if (0 < argTypes.Length)
+                {
+                    dumpText += "<";
+                    for (int i=0; i<argTypes.Length; i++)
+                    {
+                        if (i == 0)
+                        {
+                            dumpText += argTypes[i].Name;
+                        }
+                        else
+                        {
+                            dumpText += ", " + argTypes[i].Name;
+                        }
+                    }
+                    dumpText += ">";
+                }
+            }
 
             if (dType.IsPrimitive) 
             {
-                return d.ToString();
+                if (displayType && verbose)
+                    dumpText = "(" + dumpText + ") "; 
+                dumpText += d.ToString();
             } 
-            else if (dType == typeof(string)) 
+            else if (dType == StringType) 
             {
-                return "\"" + ((string) d) + "\"";
+                if (displayType && verbose)
+                    dumpText = "(" + dumpText + ") "; 
+                dumpText += "\"" + ((string) d) + "\"";
             } 
-            else if (dType == typeof(bool)) 
+            else if (dType == BoolType) 
             {
-                 return ((bool) d ? "True" : "False");
+                if (displayType && verbose)
+                    dumpText = "(" + dumpText + ") "; 
+                 dumpText += ((bool) d ? "True" : "False");
+            }
+            else if (maxDepth < level)
+            {
+                dumpText += " ...";
             }
             else if (d is IDictionary)
             {
-                string dumpText = "";
-                if (verbose) {
-                    Type[] argTypes = dType.GetGenericArguments();
-                    Type kType = argTypes[0];
-                    Type vType = argTypes[1];
-                    dumpText += dType.Name + "<" + kType.Name + "," + vType.Name + "> ";
-                }
-                if (maxDepth < level)
-                {
-                    return dumpText + " ... ";
-                }
-                dumpText += "{" + CRLF;
+                bool valueVerbose = ValueVerboseType(argTypes[1]);
+                dumpText += " {" + CRLF;
                 IDictionary dict = d as IDictionary;
                 foreach (object key in dict.Keys)
                 {
-                    dumpText += BuildIndent(level + 1, indent);
+                    dumpText += BuildIndent(level + 1);
                     dumpText += key.ToString() + " : ";
-                    dumpText += _Dump(dict[key], level + 1, indent, verbose, maxDepth) + ",";
-                    dumpText += CRLF;
+                    dumpText += _Dump(dict[key], level + 1, valueVerbose);
+                    dumpText += "," + CRLF;
                 }
-                dumpText += BuildIndent(level, indent) + "}";
-                return dumpText;
+                dumpText += BuildIndent(level);
+                dumpText += "}";
             }
             else if (d is IList)
             {
-                string dumpText = "";
-                if (verbose) {
-                    Type[] argTypes = dType.GetGenericArguments();
-                    if (0 < argTypes.Length) 
-                    {
-                        Type vType = argTypes[0];
-                        dumpText = dType.Name + "<" + vType.Name + "> ";
-                    } 
-                    else
-                    {
-                        dumpText = dType.Name + " ";
-                    }
-                }
-                if (maxDepth < level)
-                {
-                    return dumpText + " ... ";
-                }
-                dumpText += "[" + CRLF;
+                bool valueVerbose = 0 < argTypes.Length && ValueVerboseType(argTypes[0]);
+                dumpText += " [" + CRLF;
                 IList list = d as IList;
                 foreach (object item in list)
                 {
-                    dumpText += BuildIndent(level + 1, indent);
-                    dumpText += _Dump(item, level + 1, indent, verbose, maxDepth) + ",";
-                    dumpText += CRLF;
+                    dumpText += BuildIndent(level + 1);
+                    dumpText += _Dump(item, level + 1, valueVerbose);
+                    dumpText += "," + CRLF;
                 }
-                dumpText += BuildIndent(level, indent) + "]";
-                return dumpText;
+                dumpText += BuildIndent(level);
+                dumpText += "]";
             }
             else
             {
-                if (maxDepth < level)
-                {
-                    return dType.Name + " ... ";
-                }
-                string dumpText = dType.Name + " (";
-                dumpText += CRLF;
+                dumpText += " (" + CRLF;
                 foreach (FieldInfo dFieldInfo in dType.GetFields()) 
                 {
                     object val = dFieldInfo.GetValue(d);
                     Type   fType = dFieldInfo.FieldType;
-                    dumpText += BuildIndent(level + 1, indent);
-                    if (verbose) {
+                    bool valueVerbose = ValueVerboseType(fType);
+                    dumpText += BuildIndent(level + 1);
+                    if (verbose)
+                    {
                         dumpText += "(" +fType.Name+") ";
                     }
                     dumpText += dFieldInfo.Name + " = ";
-                    dumpText += _Dump(val, level + 1, indent, verbose, maxDepth) + ";";
-                    dumpText += CRLF;
+                    dumpText += _Dump(val, level + 1, valueVerbose);
+                    dumpText += ";" + CRLF;
                 }
                 foreach (PropertyInfo dPropertyInfo in dType.GetProperties()) 
                 {
                     Type   fType = dPropertyInfo.PropertyType;
                     object val  = dPropertyInfo.GetValue(d, null);
-                    dumpText += BuildIndent(level + 1, indent);
-                    if (verbose) {
+                    bool valueVerbose = ValueVerboseType(fType);
+                    dumpText += BuildIndent(level + 1);
+                    if (verbose)
+                    {
                         dumpText += "(" +fType.Name+") ";
                     }
                     dumpText += dPropertyInfo.Name + " = ";
-                    dumpText += _Dump(val, level + 1, indent, verbose, maxDepth) + ";";
-                    dumpText += CRLF;
+                    dumpText += _Dump(val, level + 1, valueVerbose);
+                    dumpText += ";" + CRLF;
                 }
-                dumpText += BuildIndent(level, indent) + ")";
-                return dumpText;
+                dumpText += BuildIndent(level);
+                dumpText += ")";
             }
+            return dumpText;
         }
 
-        private static string BuildIndent(int level, int indentNum)
+        private string BuildIndent(int level)
         {
-            string indent = "";
+            string indentStr = "";
 
-            for (int i = 0; i < level * indentNum; i++)
+            for (int i = 0; i < level * indent; i++)
             {
-                indent += SPACE;
+                indentStr += SPACE;
             }
 
-            return indent;
+            return indentStr;
+        }
+
+        private bool ValueVerboseType( Type t )
+        {
+            return  !t.IsPrimitive && t != StringType && t != BoolType;
         }
     }
 }
