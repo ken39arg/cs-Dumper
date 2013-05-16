@@ -57,6 +57,11 @@ public class TestClass
         pripriIntD = val;
     }
 
+    public int GetPripriIntD()
+    {
+        return pripriIntD;
+    }
+
     public TestClass pubpubObjE;
 
     public IDictionary pubpubDictF;
